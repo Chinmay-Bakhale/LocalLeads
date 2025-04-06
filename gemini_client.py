@@ -15,7 +15,7 @@ def setup_gemini():
     """Set up Gemini API with the API key from Streamlit secrets"""
     try:
         genai.configure(api_key=st.secrets["GEMINI_API_KEY"])
-        return genai.GenerativeModel('gemini-1.5-pro')
+        return genai.GenerativeModel('gemini-2.0-flash')
     except Exception as e:
         st.error(f"Error setting up Gemini API: {str(e)}")
         raise
