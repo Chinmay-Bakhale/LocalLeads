@@ -1,7 +1,7 @@
-requests>=2.31.0
-beautifulsoup4>=4.8.1
-streamlit>=1.44.0
-googlemaps>=4.2.0
-google-ai-generativelanguage
-pandas>=2.2.3
-plotly>=5.18.0
+streamlit
+pandas
+folium
+streamlit-folium
+requests
+beautifulsoup4
+google-generativeai
