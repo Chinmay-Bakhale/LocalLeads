@@ -10,6 +10,7 @@ from typing import Dict, List
 from requests.adapters import HTTPAdapter
 from urllib3.util.retry import Retry
 import random
+from typing import List
 
 def setup_gemini():
     """Set up Gemini API with the API key from Streamlit secrets"""
@@ -20,86 +21,78 @@ def setup_gemini():
         st.error(f"Error setting up Gemini API: {str(e)}")
         raise
 
-def search_business_info(business_name: str, location: str) -> List[str]:
-    """Search for business info with improved reliability and fallback mechanisms"""
+'''
+def search_business_info(business_name: str, location: str):
+    """Search for business info using Google Custom Search JSON API."""
     search_query = f"{business_name} {location} company information"
-    
+    api_key = st.secrets["GOOGLE_API_KEY"]  # Store your API key in Streamlit secrets
+    search_engine_id = st.secrets["SEARCH_ENGINE_ID"]  # Store your Search Engine ID in Streamlit secrets
+    endpoint = "https://www.googleapis.com/customsearch/v1"
+
+    params = {
+        "q": search_query,
+        "key": api_key,
+        "cx": search_engine_id,
+        "num": 2  # Number of search results to retrieve
+    }
+
     try:
-        session = requests.Session()
-        retry_strategy = Retry(
-            total=2,
-            backoff_factor=1,
-            status_forcelist=[429, 500, 502, 503, 504],
-        )
-        adapter = HTTPAdapter(max_retries=retry_strategy)
-        session.mount("https://", adapter)
-        session.mount("http://", adapter)
-        
-        user_agents = [
-            "Mozilla/5.0 ... Chrome/91.0",
-            "Mozilla/5.0 ... Safari/605.1.15",
-            "Mozilla/5.0 ... Firefox/90.0"
-        ]
-        
-        headers = {
-            "User-Agent": random.choice(user_agents),
-            "Accept": "text/html,application/xhtml+xml,application/xml",
-            "Accept-Language": "en-US,en;q=0.9",
-            "Referer": "https://www.google.com/"
-        }
-        
-        url = f"https://duckduckgo.com/html/?q={search_query}"
-        response = session.get(url, headers=headers, timeout=8)
-        soup = BeautifulSoup(response.text, 'html.parser')
+        response = requests.get(endpoint, params=params)
+        response.raise_for_status()
+        search_results = response.json().get("items", [])
 
         results = []
-        for result in soup.select('.result__body')[:3]:
-            title = result.select_one('.result__title')
-            snippet = result.select_one('.result__snippet')
-            link = result.select_one('.result__url')
-            
-            if title and snippet:
-                results.append({
-                    'title': title.get_text(strip=True),
-                    'snippet': snippet.get_text(strip=True),
-                    'url': link.get('href') if link else None
-                })
+        for result in search_results:
+            results.append({
+                'title': result.get('title'),
+                'snippet': result.get('snippet'),
+                'url': result.get('link')
+            })
 
         formatted_results = [
             f"Title: {r['title']}\nSnippet: {r['snippet']}\nURL: {r['url']}" for r in results
         ]
 
-        if formatted_results:
-            return formatted_results
+        return formatted_results
 
-    except Exception as e:
-        st.warning(f"DuckDuckGo search failed: {str(e)}. Using fallback method.")
+    except requests.RequestException as e:
+        st.warning(f"Google Custom Search failed: {str(e)}. Using fallback method.")
+        return []
+'''
 
-    # Fallback logic
+
+def search_business_info(business_name: str, location: str) -> List[str]:
+    """Search for business info using SerpAPI (Google Results)"""
+    search_query = f"{business_name} {location} company information"
+    serpapi_key = st.secrets["SERPAPI_KEY"]
+
     try:
-        business_type_string = f"{business_name.lower()} {location.lower()}"
-        context = []
+        params = {
+            "engine": "google",
+            "q": search_query,
+            "api_key": serpapi_key,
+            "num": 3,
+        }
 
-        if any(keyword in business_type_string for keyword in ["restaurant", "cafe", "bar", "grill"]):
-            context.append("Title: Food Service Industry Overview\nSnippet: ...\nURL: example.com/restaurant-industry")
-        elif any(keyword in business_type_string for keyword in ["hotel", "inn", "motel"]):
-            context.append("Title: Hospitality Industry Trends\nSnippet: ...\nURL: example.com/hotel-industry")
-        elif any(keyword in business_type_string for keyword in ["retail", "shop", "store"]):
-            context.append("Title: Retail Business Challenges\nSnippet: ...\nURL: example.com/retail-business")
-        elif any(keyword in business_type_string for keyword in ["salon", "spa", "beauty"]):
-            context.append("Title: Beauty Industry Insights\nSnippet: ...\nURL: example.com/beauty-industry")
-        elif any(keyword in business_type_string for keyword in ["dental", "dentist"]):
-            context.append("Title: Dental Practice Management\nSnippet: ...\nURL: example.com/dental-practice")
-        elif any(keyword in business_type_string for keyword in ["gym", "fitness"]):
-            context.append("Title: Fitness Center Operations\nSnippet: ...\nURL: example.com/fitness-business")
-        else:
-            context.append(f"Title: Small Business Operations\nSnippet: ...\nURL: example.com/small-business")
+        response = requests.get("https://serpapi.com/search", params=params)
+        response.raise_for_status()
+        data = response.json()
 
-        context.append(f"Title: Business Types in {location}\nSnippet: ...\nURL: example.com/local-business")
-        return context
+        results = []
+        organic_results = data.get("organic_results", [])
+
+        for result in organic_results[:3]:
+            title = result.get("title", "No Title")
+            snippet = result.get("snippet", "No Description")
+            link = result.get("link", "No URL")
+
+            results.append(f"Title: {title}\nSnippet: {snippet}\nURL: {link}")
+
+        return results if results else ["No search results found."]
 
     except Exception as e:
-        return [f"Title: Business Information\nSnippet: Limited info for {business_name} in {location}.\nURL: N/A"]
+        st.warning(f"SerpAPI search failed: {str(e)}. Using fallback method.")
+        return [f"Search failed for {business_name} in {location}. No additional info available."]
 
 def enrich_business_data(business: Dict) -> Dict:
     """Enrich business data using Gemini API and web search with improved reliability"""
