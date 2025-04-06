@@ -21,7 +21,7 @@ def setup_gemini():
         st.error(f"Error setting up Gemini API: {str(e)}")
         raise
 
-'''
+
 def search_business_info(business_name: str, location: str):
     """Search for business info using Google Custom Search JSON API."""
     search_query = f"{business_name} {location} company information"
@@ -58,9 +58,10 @@ def search_business_info(business_name: str, location: str):
     except requests.RequestException as e:
         st.warning(f"Google Custom Search failed: {str(e)}. Using fallback method.")
         return []
+
+
+
 '''
-
-
 def search_business_info(business_name: str, location: str) -> List[str]:
     """Search for business info using SerpAPI (Google Results)"""
     search_query = f"{business_name} {location} company information"
@@ -93,6 +94,7 @@ def search_business_info(business_name: str, location: str) -> List[str]:
     except Exception as e:
         st.warning(f"SerpAPI search failed: {str(e)}. Using fallback method.")
         return [f"Search failed for {business_name} in {location}. No additional info available."]
+'''
 
 def enrich_business_data(business: Dict) -> Dict:
     """Enrich business data using Gemini API and web search with improved reliability"""
@@ -181,6 +183,8 @@ def enrich_business_data(business: Dict) -> Dict:
         })
 
     return business
+
+
 
 def enrich_leads(leads: List[Dict], max_leads: int = 8) -> List[Dict]:
     """Enrich multiple leads with improved reliability"""
