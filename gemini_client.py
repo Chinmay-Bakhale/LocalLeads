@@ -1,7 +1,9 @@
 import google.generativeai as genai
 import streamlit as st
+from bs4 import BeautifulSoup
 import json, requests, time
 from typing import Dict, List
+from urllib.parse import urljoin
 
 def setup_gemini():
     """Set up Gemini API with the API key from Streamlit secrets"""
@@ -15,7 +17,7 @@ def setup_gemini():
 
 def search_business_info(business_name: str, location: str):
     """Search for business info using Google Custom Search JSON API."""
-    search_query = f"{business_name} {location} company information"
+    search_query = f"{business_name} {location} company information and owner CEO founder linkedin"
     api_key = st.secrets["GOOGLE_API_KEY"]
     search_engine_id = st.secrets["SEARCH_ENGINE_ID"]
     endpoint = "https://www.googleapis.com/customsearch/v1"
@@ -49,7 +51,47 @@ def search_business_info(business_name: str, location: str):
     except requests.RequestException as e:
         st.warning(f"Google Custom Search failed: {str(e)}. Using fallback method.")
         return []
+'''
 
+def search_business_info(business_name: str, location: str) -> List[str]:
+    """Search for business info using a simple web search approach"""
+    search_query = f"{business_name} {location} company linkedin"
+    url = f"https://duckduckgo.com/html/?q={search_query}"
+    
+    headers = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
+    }
+    
+    try:
+        response = requests.get(url, headers=headers)
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        # Extract search results
+        results = []
+        for result in soup.select('.result__body')[:3]:  # Get top 3 results
+            title = result.select_one('.result__title')
+            snippet = result.select_one('.result__snippet')
+            link = result.select_one('.result__url')
+            
+            if title and snippet:
+                results.append({
+                    'title': title.get_text(strip=True),
+                    'snippet': snippet.get_text(strip=True),
+                    'url': link.get('href') if link else None
+                })
+        
+        # Format results for Gemini
+        formatted_results = []
+        for r in results:
+            formatted_results.append(f"Title: {r['title']}\nSnippet: {r['snippet']}\nURL: {r['url']}")
+            
+        return formatted_results
+    
+    except Exception as e:
+        st.warning(f"Could not retrieve additional business information: {str(e)}")
+        return []
+
+'''
 
 def enrich_business_data(business: Dict) -> Dict:
     """Enrich business data using Gemini API and web search with improved reliability"""
@@ -63,7 +105,7 @@ def enrich_business_data(business: Dict) -> Dict:
         search_results = search_business_info(business_name, location)
 
         prompt = f"""
-        I need you to analyze this business and provide enriched data for lead generation purposes.
+        I need you to analyze this business and provide the owner's name and enriched data for lead generation purposes.
 
         Business Information:
         - Name: {business_name}
@@ -79,9 +121,9 @@ def enrich_business_data(business: Dict) -> Dict:
 
         Based on this information, please provide:
         1. A brief company description
-        2. Estimated company size (small, medium, large)
-        3. Potential decision makers
-        4. Company pain points
+        2. Estimated company size (small, medium, large) and parent company if applicable.
+        3. Most likely owner name(s), from the company website.
+        4. Company pain points, and the latest news about the company
         5. Recommended approach for sales outreach
         6. Personalized outreach template
 
