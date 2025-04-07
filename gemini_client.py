@@ -1,16 +1,7 @@
-# gemini_client.py - CLEANED AND FIXED VERSION
-
 import google.generativeai as genai
 import streamlit as st
-import json
-import requests
-from bs4 import BeautifulSoup
-import time
+import json, requests, time
 from typing import Dict, List
-from requests.adapters import HTTPAdapter
-from urllib3.util.retry import Retry
-import random
-from typing import List
 
 def setup_gemini():
     """Set up Gemini API with the API key from Streamlit secrets"""
@@ -25,8 +16,8 @@ def setup_gemini():
 def search_business_info(business_name: str, location: str):
     """Search for business info using Google Custom Search JSON API."""
     search_query = f"{business_name} {location} company information"
-    api_key = st.secrets["GOOGLE_API_KEY"]  # Store your API key in Streamlit secrets
-    search_engine_id = st.secrets["SEARCH_ENGINE_ID"]  # Store your Search Engine ID in Streamlit secrets
+    api_key = st.secrets["GOOGLE_API_KEY"]
+    search_engine_id = st.secrets["SEARCH_ENGINE_ID"]
     endpoint = "https://www.googleapis.com/customsearch/v1"
 
     params = {
@@ -60,46 +51,9 @@ def search_business_info(business_name: str, location: str):
         return []
 
 
-
-'''
-def search_business_info(business_name: str, location: str) -> List[str]:
-    """Search for business info using SerpAPI (Google Results)"""
-    search_query = f"{business_name} {location} company information"
-    serpapi_key = st.secrets["SERPAPI_KEY"]
-
-    try:
-        params = {
-            "engine": "google",
-            "q": search_query,
-            "api_key": serpapi_key,
-            "num": 3,
-        }
-
-        response = requests.get("https://serpapi.com/search", params=params)
-        response.raise_for_status()
-        data = response.json()
-
-        results = []
-        organic_results = data.get("organic_results", [])
-
-        for result in organic_results[:3]:
-            title = result.get("title", "No Title")
-            snippet = result.get("snippet", "No Description")
-            link = result.get("link", "No URL")
-
-            results.append(f"Title: {title}\nSnippet: {snippet}\nURL: {link}")
-
-        return results if results else ["No search results found."]
-
-    except Exception as e:
-        st.warning(f"SerpAPI search failed: {str(e)}. Using fallback method.")
-        return [f"Search failed for {business_name} in {location}. No additional info available."]
-'''
-
 def enrich_business_data(business: Dict) -> Dict:
     """Enrich business data using Gemini API and web search with improved reliability"""
 
-    # Ensure basic values are initialized before try blocks
     business_name = business.get("name", "")
     business_address = business.get("full_address", business.get("address", ""))
     location = business_address.split(",")[-2].strip() if len(business_address.split(",")) > 1 else ""
@@ -139,7 +93,7 @@ def enrich_business_data(business: Dict) -> Dict:
         response = model.generate_content(prompt)
         response_text = response.text.strip()
 
-        # Try extracting JSON from markdown-wrapped responses
+        #extracting JSON from responses
         try:
             if "```json" in response_text:
                 json_text = response_text.split("```json")[1].split("```")[0]
@@ -200,20 +154,8 @@ def enrich_leads(leads: List[Dict], max_leads: int = 8) -> List[Dict]:
 
         time.sleep(1)
 
-        try:
-            enriched = enrich_business_data(lead)
-            enriched_leads.append(enriched)
-        except Exception as e:
-            st.warning(f"Failed to enrich {lead.get('name', 'Unknown')}: {str(e)}.")
-            lead.update({
-                "description": f"Basic business in {lead.get('address', '')}",
-                "company_size": "Unknown",
-                "decision_makers": "Owner/Manager",
-                "pain_points": "Unknown",
-                "recommended_approach": "Exploratory contact",
-                "outreach_template": f"Hello, I'm reaching out regarding {lead.get('name', 'Unknown')}..."
-            })
-            enriched_leads.append(lead)
+        enriched = enrich_business_data(lead)
+        enriched_leads.append(enriched)
 
     status_text.empty()
     progress_bar.empty()

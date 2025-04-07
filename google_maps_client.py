@@ -1,4 +1,3 @@
-# google_maps_client.py
 import requests
 import streamlit as st
 from typing import List, Dict, Tuple
@@ -38,15 +37,15 @@ def search_businesses(lat: float, lng: float, radius: int, business_type: str = 
     url = f"https://maps.googleapis.com/maps/api/place/nearbysearch/json"
     params = {
         "location": f"{lat},{lng}",
-        "radius": radius * 1000,  # Convert km to meters
+        "radius": radius * 1000,  # Convert km to m
         "key": st.secrets["GOOGLE_MAPS_API_KEY"]
     }
     
     # If business type is provided, use it as a keyword
     if business_type:
-        params["keyword"] = business_type  # More flexible than 'type'
+        params["keyword"] = business_type 
     
-    # Add ranking to get most prominent results first
+    # Add ranking @ prminence
     params["rankby"] = "prominence"
     
     try:
@@ -55,7 +54,7 @@ def search_businesses(lat: float, lng: float, radius: int, business_type: str = 
         
         data = response.json()
         if data["status"] == "OK":
-            # Return only the top max_results
+
             return data.get("results", [])[:max_results]
         elif data["status"] == "ZERO_RESULTS":
             return []
@@ -85,17 +84,17 @@ def get_place_details(place_id: str) -> Dict:
         else:
             return {}
     except requests.exceptions.RequestException:
-        # If we can't get details, just return empty dict - not critical
+        # If we can't get details, just return empty dict
         return {}
 
 def get_business_leads(location: str, radius: int, business_type: str = None, max_results: int = 8) -> Tuple[List[Dict], Dict]:
     """Main function to get business leads based on location and other parameters, limited to max_results"""
-    # Step 1: Geocode the location
+    #Geocode the location
     location_data = geocode_location(location)
     if not location_data:
         return [], None
     
-    # Step 2: Search for businesses (limited to max_results)
+    #Search for businesses
     businesses = search_businesses(
         location_data["lat"], 
         location_data["lng"], 
@@ -104,10 +103,10 @@ def get_business_leads(location: str, radius: int, business_type: str = None, ma
         max_results
     )
     
-    # Step 3: Process and enhance business data
+    #Process and enhance business data
     processed_businesses = []
     for business in businesses:
-        # Extract basic info from search results
+        # Extract basic info
         business_data = {
             "place_id": business.get("place_id", ""),
             "name": business.get("name", ""),
@@ -130,14 +129,14 @@ def get_business_leads(location: str, radius: int, business_type: str = None, ma
                 "opening_hours": details.get("opening_hours", {}).get("weekday_text", [])
             })
             
-            # Add a small delay to avoid hitting API rate limits
+            #API rate limits
             time.sleep(0.5)
         
-        # Calculate lead score (simple algorithm)
+        # Calculate lead score (basic algorithm)
         lead_score = 50
-        if business_data.get("rating", 0) >= 4:
+        if business_data.get("rating", 0) >= 4.5:
             lead_score += 10
-        if business_data.get("reviews", 0) >= 100:
+        if business_data.get("reviews", 0) >= 200:
             lead_score += 10
         if business_data.get("website"):
             lead_score += 10

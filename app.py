@@ -2,9 +2,6 @@ import streamlit as st
 import pandas as pd
 import folium
 from streamlit_folium import folium_static
-import time
-
-# Import our clients
 from google_maps_client import get_business_leads
 from gemini_client import enrich_leads
 
@@ -15,7 +12,7 @@ st.set_page_config(
     layout="wide"
 )
 
-# Custom CSS for better UI
+# Custom CSS
 st.markdown("""
 <style>
     .main-header {
@@ -48,7 +45,7 @@ st.markdown("""
 st.markdown('<div class="main-header">LocalLeads</div>', unsafe_allow_html=True)
 st.markdown('<div class="sub-header">AI-Enhanced Lead Generation Tool</div>', unsafe_allow_html=True)
 
-# Create sidebar for inputs
+#sidebar for inputs
 with st.sidebar:
     st.header("Search Parameters")
     
@@ -83,9 +80,9 @@ if 'location_data' not in st.session_state:
 if 'search_completed' not in st.session_state:
     st.session_state.search_completed = False
 
-# Main content area
+# Main content
 if not search_button and not st.session_state.search_completed:
-    # Display welcome information when no search has been performed
+
     st.markdown('<div class="info-box">', unsafe_allow_html=True)
     st.markdown("""
     ### Welcome to LocalLeads!
@@ -127,7 +124,7 @@ elif search_button:
         main_status.text("Step 1/2: Searching for businesses in the specified area...")
         
         try:
-            # Call Google Maps API client to get business leads (limited to 8)
+            #Google Maps API client to get business leads
             leads, location_data = get_business_leads(
                 location=location,
                 radius=radius,
@@ -138,7 +135,7 @@ elif search_button:
             # Store location data for map display
             st.session_state.location_data = location_data
             
-            # Filter results based on advanced filters
+            # Filter results
             if leads:
                 leads = [lead for lead in leads if 
                         lead.get("rating", 0) >= min_rating and 
@@ -153,18 +150,18 @@ elif search_button:
                 main_progress.progress(50)
                 main_status.text("Step 2/2: Enriching lead data with AI insights...")
                 
-                # Call Gemini client to enrich leads
+                #Gemini client to enrich leads
                 enriched_leads = enrich_leads(leads)
                 
                 # Store enriched leads in session state
                 st.session_state.enriched_leads = enriched_leads
                 st.session_state.search_completed = True
                 
-                # Complete progress
+                # Update progress
                 main_progress.progress(100)
                 main_status.empty()
                 
-                # Force page refresh to show results
+                # Force page refresh
                 st.rerun()
                 
         except Exception as e:
@@ -172,7 +169,7 @@ elif search_button:
             main_status.empty()
             st.error(f"An error occurred: {str(e)}")
 
-# Display results if search has been completed
+#results if search has been completed
 if st.session_state.search_completed and st.session_state.enriched_leads:
     enriched_leads = st.session_state.enriched_leads
     location_data = st.session_state.location_data
@@ -181,10 +178,10 @@ if st.session_state.search_completed and st.session_state.enriched_leads:
     st.success(f"Found and enriched {len(enriched_leads)} businesses within {radius}km" + 
               (f" for '{business_type}'" if business_type else ""))
     
-    # Create DataFrame from leads
+    #DataFrame from leads
     df = pd.DataFrame(enriched_leads)
     
-    # Create tabs for different views
+    #tabs for different views
     tab1, tab2, tab3, tab4 = st.tabs(["Map View", "List View", "Detailed Profiles", "Analytics"])
     
     # Tab 1: Map View
@@ -217,7 +214,7 @@ if st.session_state.search_completed and st.session_state.enriched_leads:
             </div>
             """
             
-            # Add marker with popup
+            # Add marker
             folium.Marker(
                 location=[row['lat'], row['lng']],
                 popup=folium.Popup(popup_html, max_width=300),
@@ -225,7 +222,7 @@ if st.session_state.search_completed and st.session_state.enriched_leads:
                 icon=folium.Icon(color="blue" if row.get('lead_score', 0) >= 80 else "green")
             ).add_to(m)
         
-        # Display the map
+        #map
         folium_static(m)
     
     # Tab 2: List View - Enhanced with AI data
@@ -249,9 +246,9 @@ if st.session_state.search_completed and st.session_state.enriched_leads:
         else:
             df_sorted = df.sort_values(by="name", ascending=ascending)
         
-        # Display the data with enriched fields
+        #data with enriched fields
         columns_to_display = ["name", "address", "phone", "rating", "reviews", "lead_score", "company_size"]
-        # Make sure all columns exist in the DataFrame
+
         existing_columns = [col for col in columns_to_display if col in df_sorted.columns]
         
         st.dataframe(
@@ -273,25 +270,24 @@ if st.session_state.search_completed and st.session_state.enriched_leads:
                     use_container_width=True
                 )
     
-    # Tab 3: Detailed Profiles - New tab to display enriched data
+    # Tab 3: Detailed Profiles
     with tab3:
         st.subheader("Detailed Lead Profiles")
         
-        # Let user select a lead to view in detail
+        #lead to view in detail
         selected_lead_name = st.selectbox(
             "Select a business to view detailed profile:",
             options=[lead["name"] for lead in enriched_leads]
         )
         
-        # Get the selected lead
         selected_lead = next((lead for lead in enriched_leads if lead["name"] == selected_lead_name), None)
         
         if selected_lead:
-            # Display lead details in an organized layout
+
             cols = st.columns([2, 1])
             
             with cols[0]:
-                # Basic info card
+                # Basic info
                 st.markdown("### Basic Information")
                 st.markdown(f"**Company:** {selected_lead['name']}")
                 st.markdown(f"**Address:** {selected_lead.get('full_address', selected_lead.get('address', 'N/A'))}")
@@ -324,7 +320,7 @@ if st.session_state.search_completed and st.session_state.enriched_leads:
                              height=150)
             
             with cols[1]:
-                # Lead score visualization
+                # Lead score
                 st.markdown("### Lead Score")
                 score = selected_lead.get('lead_score', 0)
                 st.progress(score/100)
@@ -350,7 +346,7 @@ if st.session_state.search_completed and st.session_state.enriched_leads:
     with tab4:
         st.subheader("Lead Analytics")
         
-        # Create simple analytics with enriched data
+        #simple analytics with enriched data
         col1, col2 = st.columns(2)
         
         with col1:
@@ -358,7 +354,7 @@ if st.session_state.search_completed and st.session_state.enriched_leads:
             if 'rating' in df.columns and len(df) > 0:
                 st.metric("Average Rating", f"{df['rating'].mean():.1f} ⭐")
             
-            # Company size distribution from Gemini enrichment
+            # Company size distr.
             st.subheader("Company Size Distribution")
             if 'company_size' in df.columns:
                 company_sizes = df['company_size'].value_counts().reset_index()
@@ -371,13 +367,12 @@ if st.session_state.search_completed and st.session_state.enriched_leads:
                 st.metric("High-Quality Leads (Score > 80)", high_quality_leads)
                 st.metric("Average Lead Score", f"{df['lead_score'].mean():.1f}")
             
-            # Rating distribution
+            # Rating distr.
             if 'rating' in df.columns and len(df) > 0:
                 st.subheader("Rating Distribution")
                 rating_counts = df['rating'].value_counts().sort_index().reset_index()
                 rating_counts.columns = ['Rating', 'Count']
                 st.bar_chart(rating_counts.set_index('Rating'))
 
-# Footer
 st.markdown("---")
 st.markdown("LocalLeads - AI-Enhanced Lead Generation Tool")
