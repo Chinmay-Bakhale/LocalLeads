@@ -65,3 +65,7 @@ LocalLeads directly addresses four critical challenges in B2B sales:
 ## Conclusion
 
 LocalLeads demonstrates that effective lead generation tools don't require complex infrastructure or extensive development time. By focusing on strategic integration of maps data, custom search capabilities, and AI enrichment, the tool delivers meaningful business value within a minimal development footprint. The focus on owner identification and latest company news ensures that sales teams have timely, relevant information for maximally effective outreach.
+
+
+[Github Repository Link](https://github.com/Chinmay-Bakhale/LocalLeads)
+[Walkthrough and demo link](https://drive.google.com/drive/folders/17a0gx2OphNvOAdxHPPxk3hJFlaWst3zG?usp=sharing)

@@ -56,7 +56,7 @@ def search_business_info(business_name: str, location: str):
 def search_business_info(business_name: str, location: str) -> List[str]:
     """Search for business info using a simple web search approach"""
     search_query = f"{business_name} {location} company linkedin"
-    url = f"https://duckduckgo.com/html/?q={search_query}"
+    url = f"https://duckduckgo.com/html/?q={search_query}" # Once deployed, does not give responses due to DuckDuckGo's security measures
     
     headers = {
         "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36"
